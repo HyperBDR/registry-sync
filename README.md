@@ -2,6 +2,12 @@
 
 Syncs public middleware/base images (databases, cache, message queues, language runtimes) from overseas sources into our local mirror registry, to speed up internal pulls. It does **not** sync images we build and publish ourselves (devify, newshub, sourcelens, etc.) — only the third-party images we depend on.
 
+## Why
+
+Docker Hub and other overseas registries are sometimes rate-limited, blocked, or slow from mainland China. That gets in the way of a smooth deployment/onboarding experience for our products, so we mirror the public images we depend on into a domestic registry.
+
+The idea (and the general approach) is borrowed from other projects doing the same thing: use GitHub Actions' outbound network access — which can reach both the overseas source registries and our domestic target registry — to pull an image from upstream and push it straight to the mirror, without ever routing image data through a machine inside mainland China. Repeated on a schedule/on demand, this gives us a self-updating container image mirror with no dedicated sync infrastructure to run ourselves.
+
 ## Layout
 
 ```
