@@ -1,0 +1,40 @@
+name: Sync images
+
+on:
+  workflow_dispatch: {}
+  push:
+    branches: [main]
+    paths:
+      - images.yaml
+      - scripts/**
+      - .github/workflows/sync.yml
+  # Uncomment once the sync cadence is decided (e.g. weekly):
+  # schedule:
+  #   - cron: "0 2 * * 1"
+
+concurrency:
+  group: registry-sync
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Ensure yq is available
+        run: |
+          if ! command -v yq >/dev/null 2>&1; then
+            sudo curl -fsSL -o /usr/local/bin/yq \
+              https://github.com/mikefarah/yq/releases/latest/download/yq_linux_amd64
+            sudo chmod +x /usr/local/bin/yq
+          fi
+          yq --version
+
+      - name: Sync images to target registry
+        env:
+          REGISTRY: ${{ secrets.REGISTRY }}
+          REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
+          REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
+          REPO: ${{ secrets.REPO }}
+        run: ./scripts/sync.sh "$REGISTRY" "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD" "$REPO"

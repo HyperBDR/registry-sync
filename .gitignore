@@ -1,0 +1,9 @@
+# Generated at sync time: contains registry credentials, image-syncer
+# binary, and the flattened mapping file. Never commit this.
+.sync-work/
+
+# Local, checkout-specific config -- these name internal projects/registries
+# and are expected to be tweaked per checkout without generating a diff.
+# Copy the committed *.sample file to create your local copy.
+config/exclude-patterns.txt
+config/ignore-paths.txt

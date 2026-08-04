@@ -1,0 +1,37 @@
+# discover.sh uses these rules to filter out "self-built/internal" images,
+# leaving only candidate public images.
+#
+# One regex per line (grep -E). Any FROM/image reference matching a pattern
+# gets excluded. Blank lines and lines starting with # are ignored.
+#
+# Adding a new internal/self-built project just needs a line here, no
+# changes to discover.sh itself.
+#
+# This is a template: `config/exclude-patterns.txt` (the file discover.sh
+# actually reads) is gitignored since it names internal projects/registries
+# and tends to get tweaked per checkout. Copy this file there and edit
+# freely -- your local copy won't show up as a diff.
+
+# Internal registry domains/namespaces
+^registry\.cn-beijing\.aliyuncs\.com/cloud2ai/
+^registry\.cn-beijing\.aliyuncs\.com/hypermotion_dockers/
+^registry\.cn-beijing\.aliyuncs\.com/newsbot/
+^sgccr\.ccs\.tencentyun\.com/cloud2ai/
+^oneprocloud/
+
+# Known self-built product names (local/CI-built tags with no registry prefix)
+^devify(-ui|-home)?:
+^income-all:
+^income-dashboard:
+^income_dashboard:
+^newshub(-ui)?:
+^newsbot:
+^sourcelens-(api|ui|lensnode):
+^hyperfilelens-(backend|frontend|postgres|redis|sourcelens-nginx):
+
+# Domestic mirror-accelerator domain: same content as an already-tracked
+# upstream image, not an independent source
+^ghcr\.nju\.edu\.cn/
+
+# Compose template placeholders, not real image references
+^__[A-Z_]+__$

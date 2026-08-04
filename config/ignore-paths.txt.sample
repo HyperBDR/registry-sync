@@ -1,0 +1,16 @@
+# Workspace paths discover.sh should not scan at all -- projects considered
+# out of scope for this sync (not because their base images are self-built,
+# but because the project itself isn't something we're syncing dependencies
+# for). One path fragment per line, matched against the full file path
+# (see discover.sh's use of `find ... -not -path`).
+#
+# Blank lines and lines starting with # are ignored.
+#
+# This is a template: `config/ignore-paths.txt` (the file discover.sh
+# actually reads) is gitignored since it names internal project directories
+# and tends to get tweaked per checkout. Copy this file there and edit
+# freely -- your local copy won't show up as a diff.
+
+*/newshub_workspace/newshub/*
+*/newsgrab/*
+*/stock_workspace/daily_stock_analysis/*

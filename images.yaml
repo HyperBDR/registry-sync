@@ -1,0 +1,64 @@
+# Manifest of public images to sync from overseas sources into the local
+# mirror registry.
+#
+# This is the single source of truth for the whole project: adding or
+# removing an image only requires editing this file, never the scripts.
+#
+# Each image entry:
+#   - name:   target repo path, i.e. the source reference with the leading
+#             registry hostname stripped (namespace/org is kept). Must be
+#             globally unique across this file. E.g. redis -> redis,
+#             bitnami/mongodb -> bitnami/mongodb,
+#             ghcr.io/browserless/chromium -> browserless/chromium.
+#   - source: full upstream pull path, including registry hostname when the
+#             image isn't on docker.io (docker.io is the implicit default,
+#             so "name" alone is a valid pull reference for it). Can be
+#             omitted whenever `name` already resolves correctly on
+#             docker.io (true for both official images like `redis` and
+#             namespaced ones like `bitnami/mongodb`); required for
+#             anything hosted elsewhere (ghcr.io, gcr.io, quay.io, ...).
+#   - tags:   tags to sync, based on what's actually used by our projects
+#             (not a full-repo sync).
+#
+# To find new candidate images: run scripts/discover.sh. It scans every
+# Dockerfile/docker-compose file under the workspace and prints images not
+# yet listed here, for manual review before adding them to a category.
+
+categories:
+  runtime:
+    description: "Language runtimes / base OS images"
+    images:
+      - name: node
+        tags: ["16-alpine3.14", "18-alpine", "22-alpine"]
+      - name: nginx
+        tags: ["alpine", "1.21", "latest", "stable-alpine"]
+      - name: ubuntu
+        tags: ["20.04", "24.04", "jammy"]
+      - name: python
+        tags: ["3.12-slim-bookworm"]
+
+  database:
+    description: "Databases"
+    images:
+      - name: mariadb
+        tags: ["11.6", "latest"]
+      - name: postgres
+        tags: ["17"]
+      - name: bitnami/mongodb
+        tags: ["6.0"]
+
+  cache:
+    description: "Cache / message queues"
+    images:
+      - name: redis
+        tags: ["alpine"]
+      - name: rabbitmq
+        tags: ["3.6.12"]
+
+  misc:
+    description: "Other middleware / tool images"
+    images:
+      - name: instrumentisto/haraka
+        tags: ["latest"]
+      - name: kopia/kopia
+        tags: ["latest"]
