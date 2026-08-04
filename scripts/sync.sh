@@ -88,19 +88,23 @@ IMAGE_SYNCER="$WORK_DIR/image-syncer"
 AUTH_FILE="$WORK_DIR/auth.yaml"
 SYNC_LIST_FILE="$WORK_DIR/sync-images.yaml"
 
+# image-syncer expands $VAR/${VAR} expressions in auth files. Keep registry
+# credentials out of the YAML itself: this is required for passwords that
+# contain '$' and also avoids writing the plaintext password to disk.
+export REGISTRY_SYNC_PRIMARY_USERNAME="$REGISTRY_USERNAME"
+export REGISTRY_SYNC_PRIMARY_PASSWORD="$REGISTRY_PASSWORD"
+if [[ -n "$SECONDARY_REGISTRY" ]]; then
+  export REGISTRY_SYNC_SECONDARY_USERNAME="$SECONDARY_REGISTRY_USERNAME"
+  export REGISTRY_SYNC_SECONDARY_PASSWORD="$SECONDARY_REGISTRY_PASSWORD"
+fi
+
 log_info "Writing auth config to $AUTH_FILE..."
-cat >"$AUTH_FILE" <<EOF
-$REGISTRY:
-  username: $REGISTRY_USERNAME
-  password: $REGISTRY_PASSWORD
-EOF
+printf '%s:\n  username: ${REGISTRY_SYNC_PRIMARY_USERNAME}\n  password: ${REGISTRY_SYNC_PRIMARY_PASSWORD}\n' \
+  "$REGISTRY" >"$AUTH_FILE"
 
 if [[ -n "$SECONDARY_REGISTRY" ]]; then
-  cat >>"$AUTH_FILE" <<EOF
-$SECONDARY_REGISTRY:
-  username: $SECONDARY_REGISTRY_USERNAME
-  password: $SECONDARY_REGISTRY_PASSWORD
-EOF
+  printf '%s:\n  username: ${REGISTRY_SYNC_SECONDARY_USERNAME}\n  password: ${REGISTRY_SYNC_SECONDARY_PASSWORD}\n' \
+    "$SECONDARY_REGISTRY" >>"$AUTH_FILE"
 fi
 
 log_info "Writing image-syncer mapping file to $SYNC_LIST_FILE..."
@@ -136,9 +140,9 @@ set -e
 
 [[ "$SYNC_EXIT" -eq 0 ]] || die "image-syncer exited with status $SYNC_EXIT"
 
-SUMMARY_LINE="$(grep -E '^Finished, [0-9]+ sync tasks failed, [0-9]+ tasks generate failed' "$SYNC_LOG_FILE" | tail -1)"
+SUMMARY_LINE="$(grep -E '(^Finished, [0-9]+ sync tasks failed, [0-9]+ tasks generate failed|Synchronization finished, [0-9]+ tasks failed)' "$SYNC_LOG_FILE" | tail -1)"
 [[ -n "$SUMMARY_LINE" ]] || die "Could not find image-syncer's completion summary in the log -- treating as a failure."
-[[ "$SUMMARY_LINE" =~ ^Finished,\ 0\ sync\ tasks\ failed,\ 0\ tasks\ generate\ failed ]] \
+[[ "$SUMMARY_LINE" =~ ^Finished,\ 0\ sync\ tasks\ failed,\ 0\ tasks\ generate\ failed || "$SUMMARY_LINE" =~ Synchronization\ finished,\ 0\ tasks\ failed ]] \
   || die "image-syncer reported failed task(s): $SUMMARY_LINE"
 
 log_info "All $IMAGE_COUNT image(s) synced successfully."

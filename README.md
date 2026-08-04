@@ -86,6 +86,11 @@ SECONDARY_REPO=mirror \
 ./scripts/sync.sh "$REGISTRY" "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD" "$REPO"
 ```
 
+Passwords are referenced through environment variables in the generated auth
+file. This is important for passwords containing `$`, which image-syncer
+interprets as environment-variable syntax, and keeps the plaintext password
+out of `auth.yaml`.
+
 Dependencies:
 - [`yq`](https://github.com/mikefarah/yq) (mikefarah's Go version, `yq eval` syntax; GitHub Actions `ubuntu-latest` runners ship it by default. Locally, `brew install yq` or download the release binary. This is **not** the Debian/Ubuntu apt `yq` package, which is a Python/jq wrapper with incompatible syntax.)
 - `curl`, `tar`
