@@ -86,18 +86,21 @@ SECONDARY_REPO=mirror \
 ./scripts/sync.sh "$REGISTRY" "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD" "$REPO"
 ```
 
-Passwords are referenced through environment variables in the generated auth
-file. This is important for passwords containing `$`, which image-syncer
-interprets as environment-variable syntax, and keeps the plaintext password
-out of `auth.yaml`.
+Credentials are written to a temporary Docker config for `regsync` and removed
+when the script exits. This keeps passwords containing `$` literal and avoids
+leaving credentials in the repository workspace.
 
 Dependencies:
 - [`yq`](https://github.com/mikefarah/yq) (mikefarah's Go version, `yq eval` syntax; GitHub Actions `ubuntu-latest` runners ship it by default. Locally, `brew install yq` or download the release binary. This is **not** the Debian/Ubuntu apt `yq` package, which is a Python/jq wrapper with incompatible syntax.)
-- `curl`, `tar`
+- `curl`, `base64`, `python3`
 
-The script reads `images.yaml`, expands it per-tag into `source:tag -> target:tag` mappings, downloads/reuses [aliyun image-syncer](https://github.com/AliyunContainerService/image-syncer) (version pinned at the top of `scripts/sync.sh` — keep it at v1.4.0+, older versions can't read the OCI image-index manifests most current Docker Hub images use), then runs the sync. `sync.sh` treats any task failure as fatal even though `image-syncer` itself exits 0 on partial failure, so a broken sync fails the script/CI job instead of silently reporting success. Intermediate artifacts (`auth.yaml`, the mapping file, the image-syncer binary) all live under `.sync-work/` (already gitignored — it contains a plaintext password, never commit it).
+The script reads `images.yaml`, expands it into `regsync` image entries, and
+runs `regsync once`. GitHub Actions installs `regsync` with the official
+[`regclient/actions/regsync-installer`](https://github.com/regclient/actions)
+action; local runs use the same binary when available and otherwise download
+the pinned release. Any failed sync entry makes the job fail.
 
-**Status as of the first real run (2026-08-04):** confirmed working end-to-end against Docker Hub as the source once `image-syncer` was bumped to v1.5.5. Pushing to the target registry currently fails with `unauthorized`/`denied` — that's a target-registry-side issue (the destination namespace likely needs to be pre-created, or the account needs push rights to it), not a bug in these scripts. Check the target registry's console/IAM before re-running. `bitnami/mongodb:6.0` was also dropped from `images.yaml` since Bitnami discontinued that free versioned tag on Docker Hub (see `images.yaml`'s comment there and `AGENTS.md` for the follow-up needed on the `income` project's own `docker-compose.yml`, which pulls the same now-broken tag).
+The previous image-syncer experiment was retired after repeated task failures. `bitnami/mongodb:6.0` was also dropped from `images.yaml` since Bitnami discontinued that free versioned tag on Docker Hub (see `images.yaml`'s comment there and `AGENTS.md` for the follow-up needed on the `income` project's own `docker-compose.yml`, which pulls the same now-broken tag).
 
 ## GitHub Actions
 

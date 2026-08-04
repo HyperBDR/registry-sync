@@ -19,24 +19,23 @@ require_cmd() {
   fi
 }
 
-# Downloads a pinned image-syncer release into $1 (destination dir) if the
-# binary isn't already there.
-download_image_syncer() {
+# Downloads a pinned regsync release into $1 (destination dir) if the binary
+# isn't already there.
+download_regsync() {
   local dest_dir="$1"
   local version="$2"
-  local binary="$dest_dir/image-syncer"
+  local binary="$dest_dir/regsync"
 
   if [[ -x "$binary" ]]; then
     return 0
   fi
 
-  local tarball="image-syncer-${version}-linux-amd64.tar.gz"
-  local url="https://github.com/AliyunContainerService/image-syncer/releases/download/${version}/${tarball}"
+  local archive="regsync-linux-amd64"
+  local url="https://github.com/regclient/regclient/releases/download/${version}/${archive}"
 
-  log_info "Downloading image-syncer ${version} from ${url}..."
-  curl -fsSL -o "${dest_dir}/${tarball}" "$url"
-  tar -zxf "${dest_dir}/${tarball}" -C "$dest_dir"
-  rm -f "${dest_dir}/${tarball}"
+  log_info "Downloading regsync ${version} from ${url}..."
+  curl -fsSL -o "$binary" "$url"
+  chmod 755 "$binary"
 
-  [[ -x "$binary" ]] || die "image-syncer binary not found after extracting ${tarball}"
+  [[ -x "$binary" ]] || die "regsync binary not found after downloading ${archive}"
 }

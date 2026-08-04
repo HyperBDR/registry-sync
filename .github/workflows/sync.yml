@@ -31,23 +31,10 @@ jobs:
           fi
           yq --version
 
-      - name: Resolve pinned image-syncer version
-        id: image_syncer
-        run: |
-          version="$(grep -oP '(?<=IMAGE_SYNCER_VERSION=")[^"]+' scripts/sync.sh)"
-          echo "Pinned version: $version"
-          echo "version=$version" >> "$GITHUB_OUTPUT"
-
-      # Only the image-syncer binary itself is cached here -- never cache
-      # .sync-work/ as a whole, since sync.sh also writes a plaintext
-      # registry password into that directory (auth.yaml) and a GitHub
-      # Actions cache is readable by anyone who can run a workflow in this
-      # repo.
-      - name: Cache image-syncer binary
-        uses: actions/cache@v4
+      - name: Install regsync
+        uses: regclient/actions/regsync-installer@main
         with:
-          path: .sync-work/image-syncer
-          key: image-syncer-${{ steps.image_syncer.outputs.version }}
+          release: v0.11.5
 
       - name: Sync images to target registry
         env:
