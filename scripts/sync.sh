@@ -1,7 +1,8 @@
 #!/bin/bash
 #
 # Sync the images listed in images.yaml from their upstream source into one or
-# two registries, using regclient's regsync.
+# two registries, using regclient's regsync. With no arguments, registry
+# settings are read from the organization-wide REGISTRY_* variables.
 
 set -euo pipefail
 
@@ -13,17 +14,32 @@ IMAGES_MANIFEST="$ROOT_DIR/images.yaml"
 REGSYNC_VERSION="v0.11.5"
 WORK_DIR="$ROOT_DIR/.sync-work"
 
-usage() { echo "Usage: $(basename "$0") <registry> <registry_username> <registry_password> <repo>" >&2; }
-if [[ $# -ne 4 ]]; then usage; exit 1; fi
+usage() { echo "Usage: $(basename "$0") [<registry> <registry_username> <registry_password> <repo>]" >&2; }
+if [[ $# -ne 0 && $# -ne 4 ]]; then usage; exit 1; fi
 
-REGISTRY="$1"
-REGISTRY_USERNAME="$2"
-REGISTRY_PASSWORD="$3"
-REPO="$4"
-SECONDARY_REGISTRY="${SECONDARY_REGISTRY:-}"
-SECONDARY_REGISTRY_USERNAME="${SECONDARY_REGISTRY_USERNAME:-}"
-SECONDARY_REGISTRY_PASSWORD="${SECONDARY_REGISTRY_PASSWORD:-}"
-SECONDARY_REPO="${SECONDARY_REPO:-$REPO}"
+if [[ $# -eq 4 ]]; then
+  REGISTRY="$1"
+  REGISTRY_USERNAME="$2"
+  REGISTRY_PASSWORD="$3"
+  REPO="$4"
+  SECONDARY_REGISTRY="${SECONDARY_REGISTRY:-}"
+  SECONDARY_REGISTRY_USERNAME="${SECONDARY_REGISTRY_USERNAME:-}"
+  SECONDARY_REGISTRY_PASSWORD="${SECONDARY_REGISTRY_PASSWORD:-}"
+  SECONDARY_REPO="${SECONDARY_REPO:-$REPO}"
+else
+  REGISTRY="${REGISTRY_DOCKER_IO_ONEPROLABS_HOST:-}"
+  REGISTRY_USERNAME="${REGISTRY_DOCKER_IO_ONEPROLABS_USERNAME:-}"
+  REGISTRY_PASSWORD="${REGISTRY_DOCKER_IO_ONEPROLABS_PASSWORD:-}"
+  REPO="${REGISTRY_DOCKER_IO_ONEPROLABS_REPO:-}"
+  SECONDARY_REGISTRY="${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_HOST:-}"
+  SECONDARY_REGISTRY_USERNAME="${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_USERNAME:-}"
+  SECONDARY_REGISTRY_PASSWORD="${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_PASSWORD:-}"
+  SECONDARY_REPO="${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_REPO:-}"
+fi
+
+if [[ -z "$REGISTRY" || -z "$REGISTRY_USERNAME" || -z "$REGISTRY_PASSWORD" || -z "$REPO" ]]; then
+  die "Primary registry configuration is incomplete. Set the REGISTRY_DOCKER_IO_ONEPROLABS_* variables."
+fi
 
 if [[ -n "$SECONDARY_REGISTRY$SECONDARY_REGISTRY_USERNAME$SECONDARY_REGISTRY_PASSWORD" ]] \
   && [[ -z "$SECONDARY_REGISTRY" || -z "$SECONDARY_REGISTRY_USERNAME" || -z "$SECONDARY_REGISTRY_PASSWORD" ]]; then

@@ -86,6 +86,23 @@ SECONDARY_REPO=mirror \
 ./scripts/sync.sh "$REGISTRY" "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD" "$REPO"
 ```
 
+In GitHub Actions, the preferred organization-wide naming convention is:
+
+```text
+REGISTRY_DOCKER_IO_ONEPROLABS_HOST
+REGISTRY_DOCKER_IO_ONEPROLABS_REPO
+REGISTRY_DOCKER_IO_ONEPROLABS_USERNAME
+REGISTRY_DOCKER_IO_ONEPROLABS_PASSWORD
+REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_HOST
+REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_REPO
+REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_USERNAME
+REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_PASSWORD
+```
+
+Use organization Variables for `HOST` and `REPO`, and organization Secrets
+for `USERNAME` and `PASSWORD`. Running `sync.sh` without arguments reads these
+names directly; the four-argument form remains available for local use.
+
 Credentials are written to a temporary Docker config for `regsync` and removed
 when the script exits. This keeps passwords containing `$` literal and avoids
 leaving credentials in the repository workspace.
@@ -110,13 +127,13 @@ Configure these under repo Settings → Secrets:
 
 | Secret | Description |
 |---|---|
-| `REGISTRY` | Target registry host, e.g. `registry.example.com` |
-| `REGISTRY_USERNAME` | Target registry username |
-| `REGISTRY_PASSWORD` | Target registry password |
-| `REPO` | Namespace under the target registry, e.g. `mirror` |
-| `SECONDARY_REGISTRY` | Optional second target registry host; the workflow uses `registry.cn-beijing.aliyuncs.com` |
-| `SECONDARY_REGISTRY_USERNAME` | Optional second target registry username; the workflow uses `xiaoquqi@gmail.com` |
-| `SECONDARY_REGISTRY_PASSWORD` | Optional second target registry password; required to enable the workflow's Aliyun target |
-| `SECONDARY_REPO` | Optional second target namespace; defaults to `REPO` (the workflow uses `cloud2ai`) |
+| `REGISTRY_DOCKER_IO_ONEPROLABS_HOST` | Organization Variable for the primary registry host |
+| `REGISTRY_DOCKER_IO_ONEPROLABS_REPO` | Organization Variable for the primary namespace |
+| `REGISTRY_DOCKER_IO_ONEPROLABS_USERNAME` | Organization Secret for the primary username |
+| `REGISTRY_DOCKER_IO_ONEPROLABS_PASSWORD` | Organization Secret for the primary password |
+| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_HOST` | Organization Variable for the Aliyun registry host |
+| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_REPO` | Organization Variable for the Aliyun namespace |
+| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_USERNAME` | Organization Secret for the Aliyun username |
+| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_PASSWORD` | Organization Secret for the Aliyun password |
 
 If the target registry is only reachable from an internal network, GitHub's hosted runners won't be able to reach it — switch `runs-on: ubuntu-latest` to a [self-hosted runner](https://docs.github.com/actions/hosting-your-own-runners); everything else stays the same.
