@@ -5,6 +5,12 @@
 #
 # Usage: sync.sh <registry> <registry_username> <registry_password> <repo>
 #
+# An optional secondary target can be configured with these environment
+# variables: SECONDARY_REGISTRY, SECONDARY_REGISTRY_USERNAME,
+# SECONDARY_REGISTRY_PASSWORD, and optionally SECONDARY_REPO (defaults to
+# REPO). This keeps the original single-target CLI compatible while allowing
+# one manifest sync to publish to two registries.
+#
 #   registry           target registry host, e.g. registry.example.com
 #   registry_username   target registry auth username
 #   registry_password   target registry auth password
@@ -37,6 +43,16 @@ REGISTRY="$1"
 REGISTRY_USERNAME="$2"
 REGISTRY_PASSWORD="$3"
 REPO="$4"
+
+SECONDARY_REGISTRY="${SECONDARY_REGISTRY:-}"
+SECONDARY_REGISTRY_USERNAME="${SECONDARY_REGISTRY_USERNAME:-}"
+SECONDARY_REGISTRY_PASSWORD="${SECONDARY_REGISTRY_PASSWORD:-}"
+SECONDARY_REPO="${SECONDARY_REPO:-$REPO}"
+
+if [[ -n "$SECONDARY_REGISTRY$SECONDARY_REGISTRY_USERNAME$SECONDARY_REGISTRY_PASSWORD" ]] \
+  && [[ -z "$SECONDARY_REGISTRY" || -z "$SECONDARY_REGISTRY_USERNAME" || -z "$SECONDARY_REGISTRY_PASSWORD" ]]; then
+  die "Secondary target requires SECONDARY_REGISTRY, SECONDARY_REGISTRY_USERNAME, and SECONDARY_REGISTRY_PASSWORD."
+fi
 
 require_cmd yq "Install mikefarah/yq v4: https://github.com/mikefarah/yq (GitHub Actions ubuntu-latest runners ship it by default)."
 require_cmd curl
@@ -79,13 +95,33 @@ $REGISTRY:
   password: $REGISTRY_PASSWORD
 EOF
 
+if [[ -n "$SECONDARY_REGISTRY" ]]; then
+  cat >>"$AUTH_FILE" <<EOF
+$SECONDARY_REGISTRY:
+  username: $SECONDARY_REGISTRY_USERNAME
+  password: $SECONDARY_REGISTRY_PASSWORD
+EOF
+fi
+
 log_info "Writing image-syncer mapping file to $SYNC_LIST_FILE..."
 : >"$SYNC_LIST_FILE"
 while IFS='|' read -r source tag name; do
-  echo "${source}:${tag}: ${REGISTRY}/${REPO}/${name}:${tag}" >>"$SYNC_LIST_FILE"
+  if [[ -n "$SECONDARY_REGISTRY" ]]; then
+    printf '%s:%s:\n  - %s/%s/%s:%s\n  - %s/%s/%s:%s\n' \
+      "$source" "$tag" \
+      "$REGISTRY" "$REPO" "$name" "$tag" \
+      "$SECONDARY_REGISTRY" "$SECONDARY_REPO" "$name" "$tag" \
+      >>"$SYNC_LIST_FILE"
+  else
+    echo "${source}:${tag}: ${REGISTRY}/${REPO}/${name}:${tag}" >>"$SYNC_LIST_FILE"
+  fi
 done <<<"$MAPPING_LINES"
 
-log_info "Syncing $IMAGE_COUNT image(s) to $REGISTRY/$REPO..."
+TARGET_SUMMARY="$REGISTRY/$REPO"
+if [[ -n "$SECONDARY_REGISTRY" ]]; then
+  TARGET_SUMMARY="$TARGET_SUMMARY and $SECONDARY_REGISTRY/$SECONDARY_REPO"
+fi
+log_info "Syncing $IMAGE_COUNT image(s) to $TARGET_SUMMARY..."
 SYNC_LOG_FILE="$WORK_DIR/sync.log"
 
 # image-syncer treats per-image failures as "best effort" and exits 0 even

@@ -73,6 +73,19 @@ Adding a new self-built project and don't want discover.sh to flag its images? A
 ./scripts/sync.sh <registry> <registry_username> <registry_password> <repo>
 ```
 
+To publish the same images to a second registry in the same run, set
+`SECONDARY_REGISTRY`, `SECONDARY_REGISTRY_USERNAME`, and
+`SECONDARY_REGISTRY_PASSWORD` in the environment. `SECONDARY_REPO` is
+optional and defaults to `REPO`:
+
+```
+SECONDARY_REGISTRY=registry.example.com \
+SECONDARY_REGISTRY_USERNAME=user \
+SECONDARY_REGISTRY_PASSWORD='password' \
+SECONDARY_REPO=mirror \
+./scripts/sync.sh "$REGISTRY" "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD" "$REPO"
+```
+
 Dependencies:
 - [`yq`](https://github.com/mikefarah/yq) (mikefarah's Go version, `yq eval` syntax; GitHub Actions `ubuntu-latest` runners ship it by default. Locally, `brew install yq` or download the release binary. This is **not** the Debian/Ubuntu apt `yq` package, which is a Python/jq wrapper with incompatible syntax.)
 - `curl`, `tar`
@@ -93,5 +106,9 @@ Configure these under repo Settings → Secrets:
 | `REGISTRY_USERNAME` | Target registry username |
 | `REGISTRY_PASSWORD` | Target registry password |
 | `REPO` | Namespace under the target registry, e.g. `mirror` |
+| `SECONDARY_REGISTRY` | Optional second target registry host; the workflow uses `registry.cn-beijing.aliyuncs.com` |
+| `SECONDARY_REGISTRY_USERNAME` | Optional second target registry username; the workflow uses `xiaoquqi@gmail.com` |
+| `SECONDARY_REGISTRY_PASSWORD` | Optional second target registry password; required to enable the workflow's Aliyun target |
+| `SECONDARY_REPO` | Optional second target namespace; defaults to `REPO` (the workflow uses `cloud2ai`) |
 
 If the target registry is only reachable from an internal network, GitHub's hosted runners won't be able to reach it — switch `runs-on: ubuntu-latest` to a [self-hosted runner](https://docs.github.com/actions/hosting-your-own-runners); everything else stays the same.

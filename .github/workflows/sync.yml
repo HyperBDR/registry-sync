@@ -55,4 +55,8 @@ jobs:
           REGISTRY_USERNAME: ${{ secrets.REGISTRY_USERNAME }}
           REGISTRY_PASSWORD: ${{ secrets.REGISTRY_PASSWORD }}
           REPO: ${{ secrets.REPO }}
+          SECONDARY_REGISTRY: registry.cn-beijing.aliyuncs.com
+          SECONDARY_REGISTRY_USERNAME: xiaoquqi@gmail.com
+          SECONDARY_REGISTRY_PASSWORD: ${{ secrets.SECONDARY_REGISTRY_PASSWORD }}
+          SECONDARY_REPO: cloud2ai
         run: ./scripts/sync.sh "$REGISTRY" "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD" "$REPO"

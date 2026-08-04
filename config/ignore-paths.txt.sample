@@ -11,6 +11,5 @@
 # and tends to get tweaked per checkout. Copy this file there and edit
 # freely -- your local copy won't show up as a diff.
 
-*/newshub_workspace/newshub/*
-*/newsgrab/*
-*/stock_workspace/daily_stock_analysis/*
+# No workspace projects are currently excluded. Public dependencies used by
+# every project in the workspace should be considered for mirroring.
