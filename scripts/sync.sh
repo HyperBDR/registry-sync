@@ -21,7 +21,7 @@ ROOT_DIR="$(cd "$SCRIPT_DIR/.." && pwd)"
 source "$SCRIPT_DIR/lib.sh"
 
 IMAGES_MANIFEST="$ROOT_DIR/images.yaml"
-IMAGE_SYNCER_VERSION="v1.3.0"
+IMAGE_SYNCER_VERSION="v1.5.5"
 WORK_DIR="$ROOT_DIR/.sync-work"
 
 usage() {
@@ -86,4 +86,23 @@ while IFS='|' read -r source tag name; do
 done <<<"$MAPPING_LINES"
 
 log_info "Syncing $IMAGE_COUNT image(s) to $REGISTRY/$REPO..."
-"$IMAGE_SYNCER" --proc=20 --auth="$AUTH_FILE" --images="$SYNC_LIST_FILE" --retries=3
+SYNC_LOG_FILE="$WORK_DIR/sync.log"
+
+# image-syncer treats per-image failures as "best effort" and exits 0 even
+# when every single task failed -- it only reports the tally in its own
+# final log line. Capture that line and fail the script (and therefore the
+# CI job) unless it says zero failures, so a broken sync can't silently
+# report green.
+set +e
+"$IMAGE_SYNCER" --proc=20 --auth="$AUTH_FILE" --images="$SYNC_LIST_FILE" --retries=3 2>&1 | tee "$SYNC_LOG_FILE"
+SYNC_EXIT="${PIPESTATUS[0]}"
+set -e
+
+[[ "$SYNC_EXIT" -eq 0 ]] || die "image-syncer exited with status $SYNC_EXIT"
+
+SUMMARY_LINE="$(grep -E '^Finished, [0-9]+ sync tasks failed, [0-9]+ tasks generate failed' "$SYNC_LOG_FILE" | tail -1)"
+[[ -n "$SUMMARY_LINE" ]] || die "Could not find image-syncer's completion summary in the log -- treating as a failure."
+[[ "$SUMMARY_LINE" =~ ^Finished,\ 0\ sync\ tasks\ failed,\ 0\ tasks\ generate\ failed ]] \
+  || die "image-syncer reported failed task(s): $SUMMARY_LINE"
+
+log_info "All $IMAGE_COUNT image(s) synced successfully."

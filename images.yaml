@@ -44,8 +44,17 @@ categories:
         tags: ["11.6", "latest"]
       - name: postgres
         tags: ["17"]
-      - name: bitnami/mongodb
-        tags: ["6.0"]
+      # bitnami/mongodb:6.0 is gone from Docker Hub -- Bitnami discontinued
+      # free versioned tags there and now only publishes `latest` (plus
+      # sha256-* content-addressed tags) under docker.io/bitnami/*. A frozen,
+      # unmaintained copy of the old versioned tags lives under
+      # docker.io/bitnamilegacy/* (confirmed bitnamilegacy/mongodb:6.0.9
+      # exists) if a pinned tag is really needed. This also means the
+      # `income` project's own docker-compose.yml pull of
+      # docker.io/bitnami/mongodb:6.0 is broken independent of this repo --
+      # needs a decision there (repin to bitnamilegacy, move to a current
+      # Bitnami Secure Images tag, or switch to the official `mongo` image)
+      # before an entry is re-added here.
 
   cache:
     description: "Cache / message queues"
