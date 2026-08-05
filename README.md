@@ -91,19 +91,24 @@ Use project Variables for `HOST` and `REPO`, and project Secrets for `USERNAME`
 and `PASSWORD`. Running `sync.sh` without arguments reads these names directly;
 the four-argument form remains available for a single local target.
 
-Credentials are written to a temporary `regsync` config and removed when the
-script exits. The config prefers monolithic blob uploads for Aliyun; regsync
-can still fall back to chunked uploads when a monolithic upload fails.
+Credentials are written only to temporary `regsync` and Skopeo auth files and
+removed when the script exits. The config prefers monolithic blob uploads for
+Aliyun; regsync can still fall back to chunked uploads when a monolithic upload
+fails.
 
 Dependencies:
 - [`yq`](https://github.com/mikefarah/yq) (mikefarah's Go version, `yq eval` syntax; GitHub Actions `ubuntu-latest` runners ship it by default. Locally, `brew install yq` or download the release binary. This is **not** the Debian/Ubuntu apt `yq` package, which is a Python/jq wrapper with incompatible syntax.)
 - `curl`
+- [`skopeo`](https://github.com/containers/skopeo) (only required when the fallback list is non-empty)
 
 The script reads `images.yaml`, expands it into `regsync` image entries, and
 runs `regsync once`. GitHub Actions installs `regsync` with the official
 [`regclient/actions/regsync-installer`](https://github.com/regclient/actions)
 action; local runs use the same binary when available and otherwise download
-the pinned release. Any failed sync entry makes the job fail.
+the pinned release. Images in `config/skopeo-fallback-images.txt` are copied
+with `skopeo copy --all` instead, which preserves multi-architecture images
+and gives target registries with regsync upload compatibility issues a separate
+client implementation. Any failed sync entry makes the job fail.
 
 The previous image-syncer experiment was retired after repeated task failures. `bitnami/mongodb:6.0` was also dropped from `images.yaml` since Bitnami discontinued that free versioned tag on Docker Hub (see `images.yaml`'s comment there and `AGENTS.md` for the follow-up needed on the `income` project's own `docker-compose.yml`, which pulls the same now-broken tag).
 

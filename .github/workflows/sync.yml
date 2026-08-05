@@ -36,6 +36,12 @@ jobs:
         with:
           release: v0.11.5
 
+      - name: Install skopeo
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y skopeo
+          skopeo --version
+
       - name: Sync images to target registry
         env:
           REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_HOST: ${{ vars.REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_HOST }}

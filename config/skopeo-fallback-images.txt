@@ -1,0 +1,4 @@
+# Images listed here are copied with skopeo instead of regsync.
+# Use this only for target-registry compatibility issues and keep names aligned
+# with images.yaml. Skopeo copies all platforms for multi-architecture images.
+browserless/chromium
