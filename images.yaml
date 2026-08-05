@@ -7,11 +7,10 @@
 # Each image entry:
 #   - name:   source-derived mirror name with the leading registry hostname
 #             stripped (namespace/org is kept). Must be globally unique across
-#             this file. Target repositories replace internal '/' characters
-#             with '-' because the Aliyun target namespaces only permit a
-#             single repository path segment. E.g. bitnami/mongodb becomes
-#             bitnami-mongodb and browserless/chromium becomes
-#             browserless-chromium.
+#             this file. Target repositories use only the final path segment
+#             because the Aliyun target namespaces only permit a single
+#             repository path segment. E.g. bitnami/mongodb becomes mongodb
+#             and browserless/chromium becomes chromium.
 #   - source: full upstream pull path, including registry hostname when the
 #             image isn't on docker.io (docker.io is the implicit default,
 #             so "name" alone is a valid pull reference for it). Can be

@@ -36,17 +36,17 @@ Edit your local copies freely. If you add a rule that's broadly useful (not spec
 Edit `images.yaml` directly and add an entry under the right category:
 
 ```yaml
-- name: bitnami/mongodb   # source-derived mirror name; target uses bitnami-mongodb
+- name: bitnami/mongodb   # source-derived mirror name; target uses mongodb
   tags: ["6.0"]           # `source` can be omitted here -- docker.io is the implicit default registry
 ```
 
 ```yaml
-- name: browserless/chromium         # target uses browserless-chromium (no ghcr.io hostname)
+- name: browserless/chromium         # target uses chromium (no ghcr.io hostname)
   source: ghcr.io/browserless/chromium  # required: not on docker.io, so the pull host must be explicit
   tags: ["latest"]
 ```
 
-The synced image lands at `{registry}/{repo}/{target-name}:{tag}`. The source registry hostname is dropped and any remaining `/` is replaced with `-`, because the Aliyun namespaces only permit a single repository path segment: `bitnami/mongodb` lands at `.../bitnami-mongodb`, `instrumentisto/haraka` lands at `.../instrumentisto-haraka`, and `ghcr.io/browserless/chromium` lands at `.../browserless-chromium`. `sync.sh` validates that flattened target names are collision-free.
+The synced image lands at `{registry}/{repo}/{target-name}:{tag}`. The source registry hostname and all path prefixes are dropped because the Aliyun namespaces only permit a single repository path segment: `bitnami/mongodb` lands at `.../mongodb`, `instrumentisto/haraka` lands at `.../haraka`, and `ghcr.io/browserless/chromium` lands at `.../chromium`. `sync.sh` validates that target names are collision-free.
 
 No script changes needed — `images.yaml` is the only data source.
 

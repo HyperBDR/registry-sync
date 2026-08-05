@@ -63,11 +63,11 @@ MAPPING_LINES="$(yq eval \
 [[ -n "$MAPPING_LINES" ]] || die "No images found in $IMAGES_MANIFEST"
 
 UNIQUE_SOURCE_NAME_PAIRS="$(while IFS='|' read -r source _tag name; do
-  printf '%s|%s\n' "$source" "${name//\//-}"
+  printf '%s|%s\n' "$source" "${name##*/}"
 done <<<"$MAPPING_LINES" | sort -u)"
 DUPLICATES="$(echo "$UNIQUE_SOURCE_NAME_PAIRS" | cut -d'|' -f2 | sort | uniq -d)"
 if [[ -n "$DUPLICATES" ]]; then
-  die "Duplicate flattened target image name(s) in $IMAGES_MANIFEST: $(echo "$DUPLICATES" | tr '\n' ' ')"
+  die "Duplicate target image name(s) in $IMAGES_MANIFEST: $(echo "$DUPLICATES" | tr '\n' ' ')"
 fi
 
 IMAGE_COUNT="$(echo "$MAPPING_LINES" | wc -l | tr -d ' ')"
@@ -114,7 +114,7 @@ for index in "${!TARGET_REGISTRIES[@]}"; do
 
   printf '%s\n' 'version: 1' 'defaults:' '  parallel: 10' '  skipDockerConfig: false' 'sync:' >"$config_file"
   while IFS='|' read -r source tag name; do
-    target_name="${name//\//-}"
+    target_name="${name##*/}"
     printf '  - source: %s:%s\n    target: %s/%s/%s:%s\n    type: image\n' \
       "$source" "$tag" "$registry" "$repo" "$target_name" "$tag" >>"$config_file"
   done <<<"$MAPPING_LINES"
