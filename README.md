@@ -73,35 +73,23 @@ Adding a new self-built project and don't want discover.sh to flag its images? A
 ./scripts/sync.sh <registry> <registry_username> <registry_password> <repo>
 ```
 
-To publish the same images to a second registry in the same run, set
-`SECONDARY_REGISTRY`, `SECONDARY_REGISTRY_USERNAME`, and
-`SECONDARY_REGISTRY_PASSWORD` in the environment. `SECONDARY_REPO` is
-optional and defaults to `REPO`:
-
-```
-SECONDARY_REGISTRY=registry.example.com \
-SECONDARY_REGISTRY_USERNAME=user \
-SECONDARY_REGISTRY_PASSWORD='password' \
-SECONDARY_REPO=mirror \
-./scripts/sync.sh "$REGISTRY" "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD" "$REPO"
-```
-
-In GitHub Actions, the preferred organization-wide naming convention is:
+The GitHub Actions workflow mirrors to two Aliyun namespaces. Its project-level
+configuration uses this naming convention:
 
 ```text
-REGISTRY_DOCKER_IO_ONEPROLABS_HOST
-REGISTRY_DOCKER_IO_ONEPROLABS_REPO
-REGISTRY_DOCKER_IO_ONEPROLABS_USERNAME
-REGISTRY_DOCKER_IO_ONEPROLABS_PASSWORD
+REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_HOST
+REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_REPO
+REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_USERNAME
+REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_PASSWORD
 REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_HOST
 REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_REPO
 REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_USERNAME
 REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_PASSWORD
 ```
 
-Use organization Variables for `HOST` and `REPO`, and organization Secrets
-for `USERNAME` and `PASSWORD`. Running `sync.sh` without arguments reads these
-names directly; the four-argument form remains available for local use.
+Use project Variables for `HOST` and `REPO`, and project Secrets for `USERNAME`
+and `PASSWORD`. Running `sync.sh` without arguments reads these names directly;
+the four-argument form remains available for a single local target.
 
 Credentials are written to a temporary Docker config for `regsync` and removed
 when the script exits. This keeps passwords containing `$` literal and avoids
@@ -127,13 +115,13 @@ Configure these under repo Settings → Secrets:
 
 | Secret | Description |
 |---|---|
-| `REGISTRY_DOCKER_IO_ONEPROLABS_HOST` | Organization Variable for the primary registry host |
-| `REGISTRY_DOCKER_IO_ONEPROLABS_REPO` | Organization Variable for the primary namespace |
-| `REGISTRY_DOCKER_IO_ONEPROLABS_USERNAME` | Organization Secret for the primary username |
-| `REGISTRY_DOCKER_IO_ONEPROLABS_PASSWORD` | Organization Secret for the primary password |
-| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_HOST` | Organization Variable for the Aliyun registry host |
-| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_REPO` | Organization Variable for the Aliyun namespace |
-| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_USERNAME` | Organization Secret for the Aliyun username |
-| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_PASSWORD` | Organization Secret for the Aliyun password |
+| `REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_HOST` | Project Variable for the first Aliyun registry host |
+| `REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_REPO` | Project Variable for the first Aliyun namespace |
+| `REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_USERNAME` | Project Secret for the first Aliyun username |
+| `REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_PASSWORD` | Project Secret for the first Aliyun password |
+| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_HOST` | Project Variable for the second Aliyun registry host |
+| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_REPO` | Project Variable for the second Aliyun namespace |
+| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_USERNAME` | Project Secret for the second Aliyun username |
+| `REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_PASSWORD` | Project Secret for the second Aliyun password |
 
 If the target registry is only reachable from an internal network, GitHub's hosted runners won't be able to reach it — switch `runs-on: ubuntu-latest` to a [self-hosted runner](https://docs.github.com/actions/hosting-your-own-runners); everything else stays the same.

@@ -22,29 +22,33 @@ if [[ $# -eq 4 ]]; then
   REGISTRY_USERNAME="$2"
   REGISTRY_PASSWORD="$3"
   REPO="$4"
-  SECONDARY_REGISTRY="${SECONDARY_REGISTRY:-}"
-  SECONDARY_REGISTRY_USERNAME="${SECONDARY_REGISTRY_USERNAME:-}"
-  SECONDARY_REGISTRY_PASSWORD="${SECONDARY_REGISTRY_PASSWORD:-}"
-  SECONDARY_REPO="${SECONDARY_REPO:-$REPO}"
+  TARGET_REGISTRIES=("$REGISTRY")
+  TARGET_USERNAMES=("$REGISTRY_USERNAME")
+  TARGET_PASSWORDS=("$REGISTRY_PASSWORD")
+  TARGET_REPOS=("$REPO")
 else
-  REGISTRY="${REGISTRY_DOCKER_IO_ONEPROLABS_HOST:-}"
-  REGISTRY_USERNAME="${REGISTRY_DOCKER_IO_ONEPROLABS_USERNAME:-}"
-  REGISTRY_PASSWORD="${REGISTRY_DOCKER_IO_ONEPROLABS_PASSWORD:-}"
-  REPO="${REGISTRY_DOCKER_IO_ONEPROLABS_REPO:-}"
-  SECONDARY_REGISTRY="${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_HOST:-}"
-  SECONDARY_REGISTRY_USERNAME="${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_USERNAME:-}"
-  SECONDARY_REGISTRY_PASSWORD="${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_PASSWORD:-}"
-  SECONDARY_REPO="${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_REPO:-}"
+  TARGET_REGISTRIES=(
+    "${REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_HOST:-}"
+    "${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_HOST:-}"
+  )
+  TARGET_USERNAMES=(
+    "${REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_USERNAME:-}"
+    "${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_USERNAME:-}"
+  )
+  TARGET_PASSWORDS=(
+    "${REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_PASSWORD:-}"
+    "${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_PASSWORD:-}"
+  )
+  TARGET_REPOS=(
+    "${REGISTRY_ALIYUN_CN_BEIJING_ONEPROLABS_REPO:-}"
+    "${REGISTRY_ALIYUN_CN_BEIJING_CLOUD2AI_REPO:-}"
+  )
 fi
 
-if [[ -z "$REGISTRY" || -z "$REGISTRY_USERNAME" || -z "$REGISTRY_PASSWORD" || -z "$REPO" ]]; then
-  die "Primary registry configuration is incomplete. Set the REGISTRY_DOCKER_IO_ONEPROLABS_* variables."
-fi
-
-if [[ -n "$SECONDARY_REGISTRY$SECONDARY_REGISTRY_USERNAME$SECONDARY_REGISTRY_PASSWORD" ]] \
-  && [[ -z "$SECONDARY_REGISTRY" || -z "$SECONDARY_REGISTRY_USERNAME" || -z "$SECONDARY_REGISTRY_PASSWORD" ]]; then
-  die "Secondary target requires SECONDARY_REGISTRY, SECONDARY_REGISTRY_USERNAME, and SECONDARY_REGISTRY_PASSWORD."
-fi
+for index in "${!TARGET_REGISTRIES[@]}"; do
+  [[ -n "${TARGET_REGISTRIES[$index]}" && -n "${TARGET_USERNAMES[$index]}" && -n "${TARGET_PASSWORDS[$index]}" && -n "${TARGET_REPOS[$index]}" ]] \
+    || die "Target registry configuration is incomplete at index $index."
+done
 
 require_cmd yq "Install mikefarah/yq v4: https://github.com/mikefarah/yq"
 require_cmd curl
@@ -72,19 +76,17 @@ else
   download_regsync "$WORK_DIR" "$REGSYNC_VERSION"
   REGSYNC="$WORK_DIR/regsync"
 fi
-CONFIG_FILE="$WORK_DIR/regsync.yml"
-
-DOCKER_CONFIG_DIR="$(mktemp -d)"
-cleanup() { rm -rf "$DOCKER_CONFIG_DIR"; }
+TEMP_DIR="$(mktemp -d)"
+cleanup() { rm -rf "$TEMP_DIR"; }
 trap cleanup EXIT
 
 write_docker_auth() {
-  local registry="$1" username="$2" password="$3" encoded
+  local config_dir="$1" registry="$2" username="$3" password="$4" encoded
   encoded="$(printf '%s:%s' "$username" "$password" | base64 -w0)"
-  if [[ ! -f "$DOCKER_CONFIG_DIR/config.json" ]]; then
-    printf '{"auths":{}}\n' >"$DOCKER_CONFIG_DIR/config.json"
+  if [[ ! -f "$config_dir/config.json" ]]; then
+    printf '{"auths":{}}\n' >"$config_dir/config.json"
   fi
-  python3 - "$DOCKER_CONFIG_DIR/config.json" "$registry" "$encoded" <<'PY'
+  python3 - "$config_dir/config.json" "$registry" "$encoded" <<'PY'
 import json
 import sys
 path, registry, encoded = sys.argv[1:]
@@ -97,24 +99,25 @@ with open(path, "w", encoding="utf-8") as handle:
 PY
 }
 
-write_docker_auth "$REGISTRY" "$REGISTRY_USERNAME" "$REGISTRY_PASSWORD"
-if [[ -n "$SECONDARY_REGISTRY" ]]; then
-  write_docker_auth "$SECONDARY_REGISTRY" "$SECONDARY_REGISTRY_USERNAME" "$SECONDARY_REGISTRY_PASSWORD"
-fi
-export DOCKER_CONFIG="$DOCKER_CONFIG_DIR"
+for index in "${!TARGET_REGISTRIES[@]}"; do
+  registry="${TARGET_REGISTRIES[$index]}"
+  username="${TARGET_USERNAMES[$index]}"
+  password="${TARGET_PASSWORDS[$index]}"
+  repo="${TARGET_REPOS[$index]}"
+  run_dir="$TEMP_DIR/$index"
+  docker_config_dir="$run_dir/.docker"
+  config_file="$run_dir/regsync.yml"
+  mkdir -p "$docker_config_dir"
+  write_docker_auth "$docker_config_dir" "$registry" "$username" "$password"
 
-printf '%s\n' 'version: 1' 'defaults:' '  parallel: 10' '  skipDockerConfig: false' 'sync:' >"$CONFIG_FILE"
-while IFS='|' read -r source tag name; do
-  printf '  - source: %s:%s\n    target: %s/%s/%s:%s\n    type: image\n' \
-    "$source" "$tag" "$REGISTRY" "$REPO" "$name" "$tag" >>"$CONFIG_FILE"
-  if [[ -n "$SECONDARY_REGISTRY" ]]; then
+  printf '%s\n' 'version: 1' 'defaults:' '  parallel: 10' '  skipDockerConfig: false' 'sync:' >"$config_file"
+  while IFS='|' read -r source tag name; do
     printf '  - source: %s:%s\n    target: %s/%s/%s:%s\n    type: image\n' \
-      "$source" "$tag" "$SECONDARY_REGISTRY" "$SECONDARY_REPO" "$name" "$tag" >>"$CONFIG_FILE"
-  fi
-done <<<"$MAPPING_LINES"
+      "$source" "$tag" "$registry" "$repo" "$name" "$tag" >>"$config_file"
+  done <<<"$MAPPING_LINES"
 
-TARGET_SUMMARY="$REGISTRY/$REPO"
-if [[ -n "$SECONDARY_REGISTRY" ]]; then TARGET_SUMMARY="$TARGET_SUMMARY and $SECONDARY_REGISTRY/$SECONDARY_REPO"; fi
-log_info "Syncing $IMAGE_COUNT image(s) to $TARGET_SUMMARY with regsync $REGSYNC_VERSION..."
-"$REGSYNC" -c "$CONFIG_FILE" once --logopt text
-log_info "All $IMAGE_COUNT image(s) synced successfully."
+  log_info "Syncing $IMAGE_COUNT image(s) to $registry/$repo with regsync $REGSYNC_VERSION..."
+  HOME="$run_dir" DOCKER_CONFIG="$docker_config_dir" "$REGSYNC" -c "$config_file" once --logopt text
+done
+
+log_info "All $IMAGE_COUNT image(s) synced successfully to ${#TARGET_REGISTRIES[@]} target(s)."
