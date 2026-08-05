@@ -52,8 +52,6 @@ done
 
 require_cmd yq "Install mikefarah/yq v4: https://github.com/mikefarah/yq"
 require_cmd curl
-require_cmd base64
-require_cmd python3
 [[ -f "$IMAGES_MANIFEST" ]] || die "Manifest not found: $IMAGES_MANIFEST"
 mkdir -p "$WORK_DIR"
 
@@ -82,23 +80,10 @@ TEMP_DIR="$(mktemp -d)"
 cleanup() { rm -rf "$TEMP_DIR"; }
 trap cleanup EXIT
 
-write_docker_auth() {
-  local config_dir="$1" registry="$2" username="$3" password="$4" encoded
-  encoded="$(printf '%s:%s' "$username" "$password" | base64 -w0)"
-  if [[ ! -f "$config_dir/config.json" ]]; then
-    printf '{"auths":{}}\n' >"$config_dir/config.json"
-  fi
-  python3 - "$config_dir/config.json" "$registry" "$encoded" <<'PY'
-import json
-import sys
-path, registry, encoded = sys.argv[1:]
-with open(path, encoding="utf-8") as handle:
-    data = json.load(handle)
-data.setdefault("auths", {})[registry] = {"auth": encoded}
-with open(path, "w", encoding="utf-8") as handle:
-    json.dump(data, handle)
-    handle.write("\n")
-PY
+yaml_quote() {
+  local value="$1"
+  value="${value//\'/\'\'}"
+  printf "'%s'" "$value"
 }
 
 for index in "${!TARGET_REGISTRIES[@]}"; do
@@ -107,12 +92,20 @@ for index in "${!TARGET_REGISTRIES[@]}"; do
   password="${TARGET_PASSWORDS[$index]}"
   repo="${TARGET_REPOS[$index]}"
   run_dir="$TEMP_DIR/$index"
-  docker_config_dir="$run_dir/.docker"
   config_file="$run_dir/regsync.yml"
-  mkdir -p "$docker_config_dir"
-  write_docker_auth "$docker_config_dir" "$registry" "$username" "$password"
+  mkdir -p "$run_dir"
 
-  printf '%s\n' 'version: 1' 'defaults:' '  parallel: 10' '  skipDockerConfig: false' 'sync:' >"$config_file"
+  printf '%s\n' \
+    'version: 1' \
+    'creds:' \
+    "  - registry: $(yaml_quote "$registry")" \
+    "    user: $(yaml_quote "$username")" \
+    "    pass: $(yaml_quote "$password")" \
+    '    blobMax: -1' \
+    'defaults:' \
+    '  parallel: 10' \
+    '  skipDockerConfig: true' \
+    'sync:' >"$config_file"
   while IFS='|' read -r source tag name; do
     target_name="${name##*/}"
     printf '  - source: %s:%s\n    target: %s/%s/%s:%s\n    type: image\n' \
@@ -120,7 +113,7 @@ for index in "${!TARGET_REGISTRIES[@]}"; do
   done <<<"$MAPPING_LINES"
 
   log_info "Syncing $IMAGE_COUNT image(s) to $registry/$repo with regsync $REGSYNC_VERSION..."
-  HOME="$run_dir" DOCKER_CONFIG="$docker_config_dir" "$REGSYNC" -c "$config_file" once --logopt text
+  "$REGSYNC" -c "$config_file" once --logopt text
 done
 
 log_info "All $IMAGE_COUNT image(s) synced successfully to ${#TARGET_REGISTRIES[@]} target(s)."

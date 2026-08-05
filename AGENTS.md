@@ -14,7 +14,7 @@ Mirrors public middleware/base images (databases, cache, message queues, languag
 # Find images used across ~/workspace projects that aren't in images.yaml yet
 ./scripts/discover.sh [workspace_root]   # defaults to $HOME/workspace
 
-# Run an actual sync (requires yq, curl, base64, python3; see README for the yq caveat)
+# Run an actual sync (requires yq and curl; see README for the yq caveat)
 ./scripts/sync.sh <registry> <registry_username> <registry_password> <repo>
 
 # Syntax-check after editing a script
@@ -28,7 +28,7 @@ There is no build/lint/test suite — this is a small set of bash scripts plus a
 ## Architecture
 
 - **`images.yaml`** — categorized manifest (`runtime`/`database`/`cache`/`misc`). Each entry has `name` (source-derived mirror name with only the leading registry *hostname* stripped, namespace/org kept), optional `source` (full pull path; omit when `name` alone already resolves on docker.io, i.e. anything not hosted elsewhere), and `tags` (explicit list — this is not a full-repo sync). The Aliyun target repository uses the final segment only, so `browserless/chromium` becomes `chromium`; `sync.sh` fails fast on target-name collisions.
-- **`scripts/sync.sh`** — flattens `images.yaml` via mikefarah's Go `yq eval` syntax into `regsync` image entries and runs `regsync once`. GitHub Actions installs the pinned `regsync` release with the official `regclient/actions/regsync-installer` action; local runs fall back to the same release download. Credentials are written only to a temporary Docker config and removed on exit. Any failed sync entry makes the script fail.
+- **`scripts/sync.sh`** — flattens `images.yaml` via mikefarah's Go `yq eval` syntax into `regsync` image entries and runs `regsync once`. GitHub Actions installs the pinned `regsync` release with the official `regclient/actions/regsync-installer` action; local runs fall back to the same release download. Credentials are written only to a temporary `regsync` config and removed on exit. It sets `blobMax: -1` for Aliyun targets to avoid their broken chunk-upload endpoint. Any failed sync entry makes the script fail.
 - **`scripts/discover.sh`** — scans Dockerfile/docker-compose files under a workspace root for base images not yet in `images.yaml`. Two-tier filtering, both driven by local config so adding a new internal project never requires a script change: `config/ignore-paths.txt` skips whole projects considered out of scope for this sync (not necessarily self-built — just not tracked here), `config/exclude-patterns.txt` filters individual self-built/internal image references by regex. It also unwraps whole-value compose `${VAR:-default}` interpolation and ignores Dockerfile `FROM` lines that reference an earlier build stage's alias rather than a real image. It never writes to `images.yaml` — new candidates are printed for manual review, since some names that look self-built aren't (and vice versa).
 - **`.github/workflows/sync.yml`** — the actual sync only runs on `workflow_dispatch` or a push to `main` that touches `images.yaml`, `scripts/**`, or the workflow file itself (path-filtered — an unrelated push to `main`, e.g. a README change, does not trigger it). It reads project Variables for registry hosts/namespaces and project Secrets for usernames/passwords using the `REGISTRY_<REGISTRY_NAME>_<REPO_NAME>_*` convention. It installs `regsync` with `regclient/actions/regsync-installer` and runs the repository script.
 

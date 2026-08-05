@@ -91,13 +91,13 @@ Use project Variables for `HOST` and `REPO`, and project Secrets for `USERNAME`
 and `PASSWORD`. Running `sync.sh` without arguments reads these names directly;
 the four-argument form remains available for a single local target.
 
-Credentials are written to a temporary Docker config for `regsync` and removed
-when the script exits. This keeps passwords containing `$` literal and avoids
-leaving credentials in the repository workspace.
+Credentials are written to a temporary `regsync` config and removed when the
+script exits. The config forces monolithic blob uploads for Aliyun because its
+registry returns HTTP 404 for `regsync` chunked uploads of large layers.
 
 Dependencies:
 - [`yq`](https://github.com/mikefarah/yq) (mikefarah's Go version, `yq eval` syntax; GitHub Actions `ubuntu-latest` runners ship it by default. Locally, `brew install yq` or download the release binary. This is **not** the Debian/Ubuntu apt `yq` package, which is a Python/jq wrapper with incompatible syntax.)
-- `curl`, `base64`, `python3`
+- `curl`
 
 The script reads `images.yaml`, expands it into `regsync` image entries, and
 runs `regsync once`. GitHub Actions installs `regsync` with the official
