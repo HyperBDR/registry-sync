@@ -5,11 +5,13 @@
 # removing an image only requires editing this file, never the scripts.
 #
 # Each image entry:
-#   - name:   target repo path, i.e. the source reference with the leading
-#             registry hostname stripped (namespace/org is kept). Must be
-#             globally unique across this file. E.g. redis -> redis,
-#             bitnami/mongodb -> bitnami/mongodb,
-#             ghcr.io/browserless/chromium -> browserless/chromium.
+#   - name:   source-derived mirror name with the leading registry hostname
+#             stripped (namespace/org is kept). Must be globally unique across
+#             this file. Target repositories replace internal '/' characters
+#             with '-' because the Aliyun target namespaces only permit a
+#             single repository path segment. E.g. bitnami/mongodb becomes
+#             bitnami-mongodb and browserless/chromium becomes
+#             browserless-chromium.
 #   - source: full upstream pull path, including registry hostname when the
 #             image isn't on docker.io (docker.io is the implicit default,
 #             so "name" alone is a valid pull reference for it). Can be
