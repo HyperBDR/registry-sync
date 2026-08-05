@@ -92,8 +92,8 @@ and `PASSWORD`. Running `sync.sh` without arguments reads these names directly;
 the four-argument form remains available for a single local target.
 
 Credentials are written to a temporary `regsync` config and removed when the
-script exits. The config forces monolithic blob uploads for Aliyun because its
-registry returns HTTP 404 for `regsync` chunked uploads of large layers.
+script exits. The config prefers monolithic blob uploads for Aliyun; regsync
+can still fall back to chunked uploads when a monolithic upload fails.
 
 Dependencies:
 - [`yq`](https://github.com/mikefarah/yq) (mikefarah's Go version, `yq eval` syntax; GitHub Actions `ubuntu-latest` runners ship it by default. Locally, `brew install yq` or download the release binary. This is **not** the Debian/Ubuntu apt `yq` package, which is a Python/jq wrapper with incompatible syntax.)
