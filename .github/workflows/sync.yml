@@ -6,6 +6,7 @@ on:
     branches: [main]
     paths:
       - images.yaml
+      - config/**
       - scripts/**
       - .github/workflows/sync.yml
   # Uncomment once the sync cadence is decided (e.g. weekly):
